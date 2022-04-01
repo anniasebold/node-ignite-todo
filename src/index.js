@@ -78,10 +78,16 @@ app.put('/todos/:id', checksExistsUserAccount, (request, response) => {
 
   const [todoById] = user.todos.filter((todo) => todo.id === id);
 
+  if(!todoById) {
+    return response.status(404).json({ error: "TODO not found" })
+  }
+
   todoById.title = title;
   todoById.deadline = new Date(deadline);
 
-  return response.json(todoById)
+  const [todoByIdUpdated] = user.todos.filter((todo) => todo.id === id);
+
+  return response.json(todoByIdUpdated)
 });
 
 app.patch('/todos/:id/done', checksExistsUserAccount, (request, response) => {
@@ -89,6 +95,10 @@ app.patch('/todos/:id/done', checksExistsUserAccount, (request, response) => {
   const { id } = request.params;
 
   const [todoById] = user.todos.filter((todo) => todo.id === id);
+
+  if(!todoById) {
+    return response.status(404).json({ error: "TODO not found" })
+  }
 
   todoById.done = true;
 
@@ -101,6 +111,10 @@ app.delete('/todos/:id', checksExistsUserAccount, (request, response) => {
 
   const indexTodoById = user.todos.findIndex((todo) => todo.id === id);
 
+  if(indexTodoById < 0) {
+    return response.status(404).json({ error: "TODO not found" })
+  }
+
   console.log(indexTodoById)
 
   user.todos.splice(indexTodoById, 1)
@@ -108,4 +122,4 @@ app.delete('/todos/:id', checksExistsUserAccount, (request, response) => {
   return response.sendStatus(204);
 });
 
-app.listen(3333);
+module.exports = app;
