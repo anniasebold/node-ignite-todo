@@ -15,12 +15,22 @@ function checksExistsUserAccount(request, response, next) {
   const userByUsername = users.find((user) => user.username === username)
 
   if(!userByUsername) {
-    return response.status(400).json({ error: "User not found!" })
+    return response.status(404).json({ error: "User not found!" })
   }
 
   request.user = userByUsername;
 
   return next();
+}
+
+function checksCreateTodosUserAvailability(request, response, next) {
+  const { user } = request;
+
+  if (user.todos.length < 10 || user.pro === true) {
+    return next();
+  }
+
+  return response.status(400).json({ error: "Limit of 10 TODOS registered exceeded update your plan" })
 }
 
 function checkTodoById(id, user) {
@@ -42,13 +52,30 @@ app.post('/users', (request, response) => {
     id: uuidv4(),
     username,
     name,
-    todos: []
+    todos: [],
+    pro: false
   }
 
   users.push(user)
 
   return response.status(201).json(user);
 });
+
+app.patch('/users', checksExistsUserAccount, (request, response) => {
+  const { user } = request;
+  const { name, pro } = request.body;
+
+  if (name) {
+    user.name = name;
+  }
+  
+  user.pro = pro;
+
+  const userUpdated = users.filter((userUpdated) => userUpdated.username = user.username)
+  
+  return response.status(201).json(userUpdated);
+
+})
 
 app.get('/users', (request, response) => {
   return response.json(users)
@@ -60,7 +87,7 @@ app.get('/todos', checksExistsUserAccount, (request, response) => {
   return response.json(user.todos);
 });
 
-app.post('/todos', checksExistsUserAccount, (request, response) => {
+app.post('/todos', checksExistsUserAccount, checksCreateTodosUserAvailability, (request, response) => {
   const { user } = request;
   const { title, deadline } = request.body;
 
