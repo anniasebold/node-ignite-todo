@@ -9,6 +9,12 @@ app.use(express.json());
 
 users = [];
 
+function checkIfValidUUID(str) {
+  const regexExp = /^[0-9a-fA-F]{8}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{4}\b-[0-9a-fA-F]{12}$/gi;
+
+  return regexExp.test(str);
+}
+
 function checksExistsUserAccount(request, response, next) {
   const { username } = request.headers;
 
@@ -30,7 +36,24 @@ function checksCreateTodosUserAvailability(request, response, next) {
     return next();
   }
 
-  return response.status(400).json({ error: "Limit of 10 TODOS registered exceeded update your plan" })
+  return response.status(403).json({ error: "Limit of 10 TODOS registered exceeded update your plan" })
+}
+
+function checksTodoExists(request, response, next) {
+  const { user } = request;
+  const { id } = request.params;
+  
+  if(checkIfValidUUID(id) === false) {
+    return response.status(400).json({ error: "TODO uuid is invalid uuid" })
+  }
+  
+  const checkTodo = checkTodoById(id, user);
+
+  if(!checkTodo) {
+    return response.status(404).json({ error: "TODO not exists in user informed" })
+  }
+
+  return next();
 }
 
 function checkTodoById(id, user) {
@@ -104,7 +127,7 @@ app.post('/todos', checksExistsUserAccount, checksCreateTodosUserAvailability, (
   return response.status(201).json(todo)
 });
 
-app.put('/todos/:id', checksExistsUserAccount, (request, response) => {
+app.put('/todos/:id', checksExistsUserAccount, checksTodoExists, (request, response) => {
   const { user } = request;
   const { id } = request.params;
   const { title, deadline } = request.body;
@@ -123,7 +146,7 @@ app.put('/todos/:id', checksExistsUserAccount, (request, response) => {
   return response.json(todoUpdated)
 });
 
-app.patch('/todos/:id/done', checksExistsUserAccount, (request, response) => {
+app.patch('/todos/:id/done', checksExistsUserAccount, checksTodoExists, (request, response) => {
   const { user } = request;
   const { id } = request.params;
 
@@ -138,7 +161,7 @@ app.patch('/todos/:id/done', checksExistsUserAccount, (request, response) => {
   return response.json(todo)
 });
 
-app.delete('/todos/:id', checksExistsUserAccount, (request, response) => {
+app.delete('/todos/:id', checksExistsUserAccount, checksTodoExists, (request, response) => {
   const { user } = request;
   const { id } = request.params;
 
@@ -155,4 +178,4 @@ app.delete('/todos/:id', checksExistsUserAccount, (request, response) => {
   return response.sendStatus(204);
 });
 
-module.exports = app;
+app.listen(3333);
